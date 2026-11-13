@@ -1,90 +1,25 @@
-import React, { useState } from 'react';
-import API from '../services/api';
-import { Link, useNavigate } from 'react-router-dom';
-
-export default function Login({ setUser }) {
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleLogin = async (e) => {
+const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       const res = await API.post('/auth/login', form);
+      const userData = res.data.user || {
+        _id: res.data._id,
+        name: res.data.name,
+        email: res.data.email,
+        role: res.data.role,
+      };
+      if (!res.data.token || !userData?.email) {
+        throw new Error('Invalid server response');
+      }
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      if (setUser) setUser(res.data.user);
+      localStorage.setItem('user', JSON.stringify(userData));
+      if (setUser) setUser(userData);
       navigate('/pto/apply');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      setError(err.response?.data?.message || err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
-        {/* Subtle accent glow */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-        <div className="text-center mb-6">
-          <div className="h-10 w-10 mx-auto rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/30 mb-3">
-            ST
-          </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h2>
-          <p className="text-xs text-slate-400 mt-1">Sign in to your SmartTeam account</p>
-        </div>
-
-        {error && (
-          <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium text-center">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
-            <input 
-              type="email" 
-              required 
-              value={form.email} 
-              onChange={(e) => setForm({ ...form, email: e.target.value })} 
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-600"
-              placeholder="name@company.com"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
-            <input 
-              type="password" 
-              required 
-              value={form.password} 
-              onChange={(e) => setForm({ ...form, password: e.target.value })} 
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-600"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition duration-200 shadow-lg shadow-indigo-600/25 disabled:opacity-50 text-sm mt-2"
-          >
-            {loading ? 'Signing In...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="text-xs text-center text-slate-400 mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-4">
-            Register here
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-}
